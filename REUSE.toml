@@ -1,0 +1,17 @@
+version = 1
+SPDX-PackageName = "product-walkthrough-video"
+SPDX-PackageSupplier = "Luis Garbayo Fernández <lugarbayo@gmail.com>"
+SPDX-PackageDownloadLocation = "https://github.com/lgarbayo/product-walkthrough-video"
+
+# Everything in the repository: the skill, its references, docs, assets and CI files.
+[[annotations]]
+path = "**"
+SPDX-FileCopyrightText = "2026 Luis Garbayo Fernández <lugarbayo@gmail.com>"
+SPDX-License-Identifier = "MIT"
+
+# Copied unchanged from launch-video-kit (https://github.com/borjaperfra/launch-video-kit).
+# Its original licence text, with Borja's copyright notice, is kept next to them.
+[[annotations]]
+path = ["scripts/loop-music.mjs", "scripts/analyze-music.mjs", "scripts/LICENSE-launch-video-kit"]
+SPDX-FileCopyrightText = "2026 Borja Pérez Francés"
+SPDX-License-Identifier = "MIT"
