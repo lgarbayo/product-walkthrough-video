@@ -35,12 +35,15 @@ The scripts call these tools at run time. None of them is copied into this repos
 | [Playwright](https://playwright.dev) | records the product's app in a headless browser | Apache-2.0 |
 | [FFmpeg](https://ffmpeg.org) | cuts, measures and mixes audio and video | LGPL-2.1-or-later, or GPL-2.0-or-later, depending on how your copy was built |
 | [Node.js](https://nodejs.org) | runs the scripts | MIT |
+| [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | the free local voice (`voice.provider: "kokoro"`), through `hyperframes tts` | Apache-2.0 (the model) |
+| [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) and [soundfile](https://github.com/bastibe/python-soundfile) | the Python packages that run Kokoro, installed by you in a separate environment | MIT, BSD-3-Clause |
+| [Whisper](https://github.com/openai/whisper) through [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | transcribing Kokoro clips and your own recordings for their timings (`hyperframes transcribe`) | MIT |
 
 ## Services and the media they give you
 
 | Service | What for | What applies |
 |---|---|---|
-| [ElevenLabs](https://elevenlabs.io) | the voice-over, with **your** API key | ElevenLabs' terms of service for your plan, including whether you may publish the audio commercially |
+| [ElevenLabs](https://elevenlabs.io) | the voice-over when you choose it, with **your** API key | ElevenLabs' terms of service for your plan, including whether you may publish the audio commercially |
 | [Openverse](https://openverse.org) | searching Creative Commons music (`scripts/find-music.mjs`) | each track keeps the licence of its source (mostly Jamendo and Freesound). The finder only offers CC0 and CC BY by default, and writes the attribution to `music/CREDITS.md` |
 
 ### Why the music finder only offers CC0 and CC BY
@@ -52,6 +55,12 @@ Putting music under a video in timed relation counts as an **adaptation** under 
 - **SA** (share-alike) licences would force the whole video to be published under the same licence.
 
 CC0 and CC BY have none of these limits. CC BY only requires credit: put the lines from `music/CREDITS.md` in the video description. Openverse reports what each source declares, so check the track's own page before you publish.
+
+## The voice you choose
+
+- **ElevenLabs**: what you may do with the audio depends on your ElevenLabs plan.
+- **Kokoro**: the model is Apache-2.0, and the audio it makes for you is yours to use.
+- **Your own voice**: it is yours. If someone else reads the script, get their consent to publish it.
 
 ## Your own files
 

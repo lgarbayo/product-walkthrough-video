@@ -46,7 +46,16 @@ The format comes from this reference video: <https://youtu.be/6f3wKt45Vrc>.
 - **A fixed format.** The chapters are an intro, the problem with sourced stats, the architecture diagram built box by box, one chapter per demo beat, under the hood, an optional "how it was built", and a closing. Each demo chapter shows the real app in a phone or browser frame, with "behind the screen" cards that appear on the word the narrator says.
 - **The product's own look.** Background, palette, fonts, radius and a drawn motif come from the product's design system. A contrast check (WCAG AA) runs on every render.
 - **The real app, recorded.** Playwright records each chapter in a headless browser, one take per chapter, so any chapter can be re-recorded alone. Mock-ups are never used. When something on screen is staged, the chapter says so in an honesty note.
-- **Voice-over with ElevenLabs.** One clip per chapter with character timings, so the screen follows the words. Clips are regenerated only when their text changes, there is a dry run that prints the characters to be billed, and an estimate mode makes a silent draft without spending anything.
+- **A voice-over you choose.** The skill always offers four options and lets you pick:
+
+  | Option | Quality | Cost |
+  |---|---|---|
+  | **ElevenLabs** (recommended) | the most natural | credits from **your** ElevenLabs account |
+  | **Kokoro**, local | good, a little flatter | free, runs on your machine |
+  | **Your own voice** | yours | free: record one audio file per chapter |
+  | **No voice** | a silent draft with subtitles | free |
+
+  Every option gives one clip per chapter with timings per character, so the cards appear on the word that names them. ElevenLabs returns the timings. For Kokoro and your own recordings, the skill transcribes each clip locally and aligns it to the script. Clips are only regenerated when their text changes, and ElevenLabs has a dry run that prints the characters to be billed.
 - **Optional music, measured.** A music bed is ducked under every voice clip, and the mix is checked with a number: under each clip it must measure like the voice alone, within 1 dB. The skill asks you for a file on your machine, or for a kind of music to search on Openverse. It only offers CC0 and CC BY tracks, and keeps their attribution.
 - **Measured instead of judged.** Each render writes a report:
   - the loudness and true peak of the voice;
@@ -64,7 +73,7 @@ flowchart LR
   claude -- writes --> script[video/SCRIPT.md]
   script -- you approve --> spec[video/video.json]
   spec --> record[record.mjs<br/>Playwright]
-  spec --> voice[voice.mjs<br/>ElevenLabs]
+  spec --> voice[voice.mjs<br/>ElevenLabs, Kokoro,<br/>your recordings]
   music[find-music.mjs<br/>local file or Openverse] -.optional.-> spec
   app[(The running app)] --> record
   record -- one take per chapter --> compose
@@ -109,7 +118,12 @@ You need:
 - **FFmpeg** with `ffprobe` on the `PATH` (`ffmpeg -version`);
 - **Playwright** with its Chromium, in the product's project or in any folder you point to with `PLAYWRIGHT_MODULE`. The skill never installs it into your product;
 - **HyperFrames**: nothing to install. `compose.mjs` runs a pinned version with `npx`. On the first run it downloads the package and a Chrome build into `~/.cache/hyperframes`; `npx --yes hyperframes@0.8.216 doctor` checks it;
-- for the voice, an **ElevenLabs API key** (optional: without it you get a silent draft with the same cuts).
+- for the voice, depending on the option you pick:
+  - **ElevenLabs**: an API key from your account;
+  - **Kokoro**: a Python environment with `kokoro-onnx` and `soundfile` (Claude offers to create it in `~/.cache`, outside your project);
+  - **your own voice**: a phone or a microphone.
+
+  Kokoro and your own voice also use `hyperframes transcribe` (Whisper, local) for the timings. The first time it runs, it downloads its model.
 
 Clone the repository into your skills folder:
 
@@ -161,6 +175,12 @@ node video/voice.mjs video/video.json --only jury
 # a silent draft, no credits spent
 node video/voice.mjs video/video.json --estimate
 
+# the free local voice instead, for one pass
+HYPERFRAMES_PYTHON=~/.cache/product-walkthrough-video/kokoro/bin/python node video/voice.mjs video/video.json --provider kokoro
+
+# your own voice: the first run writes video/vo-takes/READ.md; record one file per chapter there, then run it again
+node video/voice.mjs video/video.json --provider recorded
+
 # render, or preview a few scenes in seconds
 node video/compose.mjs video/video.json --style-dir ~/.claude/skills/product-walkthrough-video/assets/style
 node video/compose.mjs video/video.json --only intro,arch
@@ -191,7 +211,7 @@ Then add `"music": { "src": "music/<file>" }` to `video.json`. If the track is s
 | `baseUrl`, `device`, `viewports` | Where the app runs, and the phone or browser frame |
 | `setup`, scene `steps` | What the recorder does: requests, `goto`, `click`, `type`, `scroll`, `waitFor`, `mark`... |
 | `theme` | The skin: colours, fonts, radius, background, motif |
-| `voice` | ElevenLabs voice and settings, lead-in and pause per chapter |
+| `voice` | `provider` (`elevenlabs`, `kokoro`, `recorded`, `none`), the ElevenLabs voice and settings, `kokoroVoice`, `takes` (the folder of your recordings), `language`, and the lead-in and pause per chapter |
 | `music` | Optional bed: `src`, `bedLufs` (default -22), `duckDb` (default 9), fades |
 | scene `voice`, `cue` | The narration of each scene, and the words on which each card appears |
 
@@ -202,6 +222,7 @@ Environment variables:
 | `ELEVENLABS_API_KEY` | `voice.mjs` | Your ElevenLabs key. Read from the environment only, never written anywhere |
 | `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL_ID` | `voice.mjs` | Override the voice (default "George") or the model (default `eleven_multilingual_v2`) |
 | `ELEVENLABS_API_BASE` | `voice.mjs` | Another API host, if you use a proxy |
+| `HYPERFRAMES_PYTHON` | `voice.mjs` | The Python with `kokoro-onnx` and `soundfile`, for the Kokoro voice |
 | `PLAYWRIGHT_MODULE` | `record.mjs` | A folder whose `node_modules` has `playwright`, when the product has none |
 | `CHROMIUM_PATH` | `record.mjs` | Another Chromium or Chrome binary |
 | `VIDEO_BASE_URL` | `record.mjs` | Overrides `baseUrl` (so does `--base-url`) |
@@ -230,7 +251,9 @@ Environment variables:
 | `music.check` fails | The music is too loud under the voice. Raise `duckDb` or lower `bedLufs` |
 | `find-music.mjs` reports HTTP 401 or 429 | Openverse allows 20 anonymous requests a minute and 200 a day, with at most 20 results a page. Wait a minute |
 | The voice estimate is longer than the script's word count suggests | Expected: estimates add rests at punctuation (about 8 %). Real ElevenLabs clips are usually shorter |
-| `voice.mjs` exits with 4 | No `ELEVENLABS_API_KEY` or no matching voice: it wrote estimates instead |
+| `voice.mjs` exits with 4 | The chosen voice is not ready: no `ELEVENLABS_API_KEY` or no matching voice, no Python for Kokoro, or recordings missing. It wrote estimates for the missing clips |
+| `Kokoro needs a Python with kokoro-onnx and soundfile` | Create one outside your project: `uv venv ~/.cache/product-walkthrough-video/kokoro && uv pip install --python ~/.cache/product-walkthrough-video/kokoro/bin/python kokoro-onnx soundfile`, then run with `HYPERFRAMES_PYTHON` pointing at that Python |
+| `only N of M words matched the transcript` | The clip does not read that chapter's text, or `voice.language` is wrong. With your own recordings, check the file name matches the chapter id |
 
 ## Support
 
@@ -251,7 +274,7 @@ Expect an answer within 48 to 72 hours: this is a free-time project with one mai
 ## Credits
 
 - `scripts/loop-music.mjs` and `scripts/analyze-music.mjs` come unchanged from [launch-video-kit](https://github.com/borjaperfra/launch-video-kit) by Borja Pérez Francés (MIT). Its README also shaped how this skill handles the voice and the music mix. The details are in [CREDITS.md](CREDITS.md).
-- The videos are rendered with [HyperFrames](https://www.npmjs.com/package/hyperframes), recorded with [Playwright](https://playwright.dev) and voiced with [ElevenLabs](https://elevenlabs.io). The music search uses the [Openverse](https://openverse.org) API.
+- The videos are rendered with [HyperFrames](https://www.npmjs.com/package/hyperframes), recorded with [Playwright](https://playwright.dev) and voiced with [ElevenLabs](https://elevenlabs.io) or [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (through HyperFrames). The music search uses the [Openverse](https://openverse.org) API.
 
 ## License
 
