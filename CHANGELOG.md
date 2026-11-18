@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-18
+
+Recording survives a crash.
+
 ### Fixed
 
 - **A crash while recording no longer loses the chapters already recorded.** `record.mjs` saved `marks.json` only at the end of the run. A browser that died mid-run (Playwright's Chromium crashes on an H.264 video, for example) or a killed process threw away the marks of every chapter, even the ones recorded fine, and they came out as stills. Now the marks are saved after every chapter, through a temporary file so they are never half-written. A browser that has already crashed no longer stops the final save.
@@ -47,6 +51,7 @@ The first public version, tested end to end by making a real three-minute explai
 - **Neutral layout keyframes**, rendered for a fictional product with no skin, so the style board compares layout without suggesting any real product's look.
 - **Project documents:** README, MIT licence with REUSE metadata, licence notes for every component, contributing guide, security policy, architecture decisions, issue and pull request templates, and CI checks.
 
-[Unreleased]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lgarbayo/product-walkthrough-video/releases/tag/v0.1.0
