@@ -77,20 +77,31 @@ La piel es todo lo que el formato deja abierto: fondo, colores, fuentes, claro u
 
 ## Voz
 
-- Locución con la cuenta de ElevenLabs del usuario. En inglés por defecto, o en el idioma que pida el usuario; la interfaz del producto mantiene su propio idioma.
+- Locución con el proveedor que elija el usuario (ver "Producción de la voz"). En inglés por defecto, o en el idioma que pida el usuario; la interfaz del producto mantiene su propio idioma.
 - Tono: sereno y preciso, un narrador que explica un producto y su ingeniería, a unas 145 palabras por minuto. Frases cortas y declarativas. Nada de "revolutionary" ni "seamless", y ninguna pregunta al público.
 - Abre y cierra con el tagline ("This is X. Tagline. Here's the product, and how it's built." … "Tagline."). Una persona de los datos de demo lleva la historia ("Ana just talks.").
 - En cada capítulo: qué hace el usuario y después cómo funciona, con **cifras reales** del código y de mediciones ("about 1.8 seconds per turn", "from 49 to 52", "twelve hundred tests run without a key").
 - Dice en voz alta los límites honestos y las reglas de diseño: qué hace el modelo y qué decide el código, qué no se hace nunca, qué es mock o modo test.
 - Cada capítulo dura 0,4 s de entrada, su clip y 1,2 s de pausa. A 145 ppm, un vídeo de 3:00 lleva unas 400 palabras.
 
-### Producción de la voz (ElevenLabs)
+### Producción de la voz
+
+El usuario elige siempre entre cuatro proveedores (`voice.provider`). Se le presentan los cuatro, con ElevenLabs como recomendado:
+
+- **`elevenlabs`**: la voz más natural. Se cobra a la cuenta de ElevenLabs del usuario, con su clave, y ElevenLabs devuelve los tiempos de cada carácter.
+- **`kokoro`**: Kokoro-82M en local con `hyperframes tts`; gratis y sin cuenta. Voz por defecto `bm_george` (inglés británico, la más cercana a la referencia) o `ef_dora` en español.
+- **`recorded`**: la voz del propio usuario, un audio por capítulo en `video/vo-takes/`.
+- **`none`**: sin audio, solo tiempos estimados (un borrador silencioso).
+
+Con Kokoro y con la voz grabada no hay tiempos por carácter: `voice.mjs` transcribe cada clip con `hyperframes transcribe` (Whisper, en local) y alinea el texto del guion con las palabras transcritas. Las que la transcripción escribe distinto ("thirty-seven" frente a "37") toman tiempos interpolados entre sus vecinas. Así las tarjetas siguen apareciendo en la palabra que las nombra, con cualquier proveedor.
+
+Para ElevenLabs:
 
 - **Clave**: es del usuario. Se lee de `ELEVENLABS_API_KEY`, nunca del repo, y nunca se imprime en logs, informes o commits.
 - **Voz**: la de la referencia, ElevenLabs "George - Warm, Captivating Storyteller", con modelo `eleven_multilingual_v2`, stability 0.55, similarity 0.8, style 0.12 y speed 1. Se busca por nombre en la cuenta; `ELEVENLABS_VOICE_ID` o `voice.name` en `video.json` la sustituyen. No elijas otra voz por tu cuenta.
 - **Sonoridad**: la voz se normaliza a -16 LUFS con pico real de -1,5 dB, con una ganancia constante y un limitador de picos. Nunca un normalizador dinámico, que bombea.
 - **Bordes limpios**: los clips se generan solo con `previous_text`, porque `next_text` hace que el modelo empiece la primera palabra del clip siguiente. `compose.mjs` silencia las ráfagas sueltas en los bordes y hace fundidos de 10 y 30 ms sin cortar habla.
-- **Un clip por capítulo**, nunca un fichero largo, para poder regrabar y reajustar un capítulo solo.
+- **Un clip por capítulo**, nunca un fichero largo, para poder regrabar y reajustar un capítulo solo. Vale igual para Kokoro y para la voz grabada.
 - **Créditos**: la generación gasta los del usuario. Primero `--dry-run`, cada clip una vez, y solo se regenera lo que está mal. Una persona lo escucha antes de publicar.
 
 ## Música (opcional)

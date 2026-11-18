@@ -17,7 +17,7 @@ Todo el trabajo pesado lo hacen tres scripts deterministas. Tu trabajo es el gui
 - `assets/style/*.jpg`: un fotograma de composición por tipo de escena, renderizado desde `assets/video.example.json` sin piel (grises neutros, producto ficticio "Fieldnote"). Son la referencia de **composición y ritmo**: no tienen colores que copiar.
 - `assets/motif.example.svg`: ejemplo de motivo que se dibuja solo.
 - `scripts/record.mjs`: graba la app con Playwright, una toma continua por capítulo, con el viewport del dispositivo.
-- `scripts/voice.mjs`: un clip de ElevenLabs por escena, con tiempos por carácter. Solo regenera lo que cambia.
+- `scripts/voice.mjs`: un clip de voz por escena, con tiempos por carácter, del proveedor que elija el usuario (ElevenLabs, Kokoro local, su propia voz o ninguno). Solo regenera lo que cambia.
 - `scripts/compose.mjs`: compone en HyperFrames, renderiza, normaliza la voz, mezcla la música y escribe el SRT, los capítulos, los fotogramas, el style-board y `report.json`.
 - `scripts/find-music.mjs`: lista los audios de la máquina, o busca y descarga música Creative Commons de Openverse con su atribución.
 - `scripts/loop-music.mjs` y `scripts/analyze-music.mjs`: alargan una pista sin costura audible y analizan su arco de energía. Vienen de [launch-video-kit](https://github.com/borjaperfra/launch-video-kit) (MIT, Borja Pérez Francés); los créditos completos están en `CREDITS.md`.
@@ -47,7 +47,17 @@ Lee el README (sobre todo el diagrama de arquitectura), la spec si la hay, el c�
 - la URL de la demo (mejor la desplegada: es lo que verá el público);
 - la duración máxima (por defecto unos 3:00);
 - para quién es el vídeo (YouTube, jurado, inversores, docs), que cambia qué capítulos pesan;
-- si quiere música; si la quiere, un archivo suyo o qué tipo de música buscar (paso 8).
+- si quiere música; si la quiere, un archivo suyo o qué tipo de música buscar (paso 8);
+- **la voz: preséntale siempre las cuatro opciones y deja que elija**, aunque tenga clave de ElevenLabs:
+
+  | Opción | Calidad | Coste | Tiempos |
+  |---|---|---|---|
+  | **ElevenLabs** (la recomendada) | la más natural | créditos de **su** cuenta de ElevenLabs | los da ElevenLabs |
+  | **Kokoro local** | buena, algo más plana | gratis; la primera vez instala un entorno de Python y descarga el modelo | transcribiendo cada clip |
+  | **Su propia voz** | la suya | gratis; graba un audio por capítulo | transcribiendo cada clip |
+  | **Sin voz** | borrador mudo con subtítulos | gratis | ritmo estimado |
+
+  La elección va en `video.json` como `voice.provider` (`elevenlabs`, `kokoro`, `recorded` o `none`).
 
 ### 2. Guion → aprobación
 Escribe `video/SCRIPT.md` siguiendo `references/script.md`. Cada cifra que vaya a pantalla o a la voz tiene que existir en el código, en los tests o en una medición que hayas hecho tú; anota de dónde sale. **Para aquí y enséñaselo al usuario.** La grabación lleva minutos y la voz gasta sus créditos de ElevenLabs, así que ningún paso posterior compensa un guion equivocado. Aplica sus cambios antes de seguir.
@@ -57,7 +67,10 @@ Escribe `video/SCRIPT.md` siguiendo `references/script.md`. Cada cifra que vaya 
 - Playwright: `node -e "require.resolve('playwright')"` desde la raíz del proyecto. Si el proyecto no lo tiene, instálalo fuera del repo (`npm i --prefix <scratch>/pw playwright@<versión cuyo Chromium ya esté en ~/.cache/ms-playwright>`) y exporta `PLAYWRIGHT_MODULE=<scratch>/pw`.
 - HyperFrames: `npx --yes hyperframes@<versión de compose.mjs> doctor`.
 - Nada de instalaciones globales ni dependencias nuevas en el proyecto.
-- Voz: `test -n "$ELEVENLABS_API_KEY"`, sin imprimirla nunca. Si falta y puedes pedir un secreto (en T3 Code: `request_secret` con `delivery: "file"`, y después `ELEVENLABS_API_KEY="$(cat <file>)" node video/voice.mjs ...` en el mismo comando), pídela una vez; si no, sigue en silencio con tiempos estimados.
+- Voz, según el proveedor elegido:
+  - **ElevenLabs**: `test -n "$ELEVENLABS_API_KEY"`, sin imprimirla nunca. Si falta y puedes pedir un secreto (en T3 Code: `request_secret` con `delivery: "file"`, y después `ELEVENLABS_API_KEY="$(cat <file>)" node video/voice.mjs ...` en el mismo comando), pídela una vez; si no, ofrécele las otras opciones.
+  - **Kokoro**: necesita un Python con `kokoro-onnx` y `soundfile`. Con su permiso, créalo fuera del proyecto: `uv venv ~/.cache/product-walkthrough-video/kokoro && uv pip install --python ~/.cache/product-walkthrough-video/kokoro/bin/python kokoro-onnx soundfile`, y exporta `HYPERFRAMES_PYTHON` a ese Python. La primera generación descarga el modelo (unos minutos) y la primera transcripción, Whisper.
+  - **Su propia voz** y **Kokoro** transcriben cada clip con `hyperframes transcribe` para sacar los tiempos: la primera vez descarga Whisper.
 
 ### 4. La app
 Comprueba la URL con `curl`. Los planes gratuitos se duermen: llama dos veces y espera. Si no hay URL, arranca el build de producción en un puerto libre con el modo demo o mock, apunta el PID y para solo ese proceso al acabar. Usa solo cuentas de prueba. Si grabas en modo mock algo que el guion promete en vivo, dilo en la nota de honestidad de la escena y en `NOTES.md`.
@@ -79,7 +92,12 @@ Escríbelo desde `SCRIPT.md`, una escena por capítulo y en orden. Los tipos y c
 `node video/record.mjs video/video.json`. Graba una toma por capítulo, porque en una toma larga el vídeo de Playwright se desfasa del reloj y el corte enseña el capítulo anterior; por eso cada capítulo inicia sesión y carga su estado. Tarda minutos: lánzalo en segundo plano o con un timeout largo, sin `| tail`. Si falla una escena, lee el error (nombra el paso) y `out/stills/<id>-error.png`, corrígelo y regraba solo esa con `--shots <id>`. Como mucho tres rondas; después se queda con su still y lo dices.
 
 ### 7. Voz
-Primero `node video/voice.mjs video/video.json --dry-run`, que imprime los caracteres que se van a cobrar. Después sin `--dry-run`. Genera cada clip una vez y regenera (`--only <id>`) solo el que cambie de texto o suene mal. No cambies la voz ni el modelo por tu cuenta. Si el usuario no quiere gastar todavía, usa `--estimate`: sale un borrador silencioso con los mismos cortes.
+`voice.mjs` usa el proveedor de `voice.provider`; `--provider` lo cambia para una pasada. Genera cada clip una vez y regenera (`--only <id>`) solo el que cambie de texto o suene mal. No cambies de proveedor, voz ni modelo por tu cuenta.
+- **ElevenLabs**: primero `--dry-run`, que imprime los caracteres que se cobrarán a **su** cuenta, y después sin él.
+- **Kokoro**: `HYPERFRAMES_PYTHON=<ese python> node video/voice.mjs video/video.json`. La voz por defecto es `bm_george` en inglés y `ef_dora` en español (`voice.kokoroVoice` la cambia).
+- **Su propia voz**: la primera pasada escribe `video/vo-takes/READ.md` con el texto de cada capítulo. El usuario graba un audio por capítulo con ese nombre (`intro.m4a`, `problem.wav`...), con el móvil o el micro, y vuelves a ejecutarlo: recorta los silencios del principio y del final, y saca los tiempos transcribiendo.
+- **Kokoro y su voz**: el JSON de cada clip (`out/vo/<id>.json`, campo `matched`) dice cuántas palabras del guion se encontraron en la transcripción. Si son menos de la mitad, el audio no lee ese capítulo o el idioma está mal.
+- **Sin voz**, o mientras falta la clave o las grabaciones: tiempos estimados y un borrador silencioso con los mismos cortes.
 
 ### 8. Música (si la hay)
 Si el usuario no quiere música, el vídeo va sin ella, como la referencia. Si la quiere, pregúntale una de dos cosas:
@@ -117,7 +135,7 @@ Nunca elijas ni descargues una pista sin que el usuario la haya escogido. Si la 
 - Haz commit solo si te lo piden, y con pathspec (`git add video && git commit -m "docs(video): ..." -- video`). Nunca subas el vídeo a ninguna plataforma.
 
 ## Degradar, nunca acabar con las manos vacías
-1. **Sin clave de ElevenLabs**: tiempos estimados y borrador silencioso con los mismos cortes y el mismo SRT. En el informe, los comandos para cuando haya clave.
+1. **Sin la voz elegida** (sin clave de ElevenLabs, sin Python para Kokoro o sin grabaciones): tiempos estimados y borrador silencioso con los mismos cortes y el mismo SRT. En el informe, lo que falta y los comandos para cuando esté.
 2. **Falla la grabación de vídeo**: stills (`--no-video`).
 3. **Sin navegador o app inaccesible**: placeholders. Se renderiza igual, y la animática con tiempos sirve para grabar encima.
 4. **Sin HyperFrames**: `compose.mjs --no-render`; entregas `out/hf/` y el comando para renderizar.
@@ -126,7 +144,7 @@ Nunca elijas ni descargues una pista sin que el usuario la haya escogido. Si la 
 ## Informe final al usuario
 - Nivel alcanzado (completo, silencioso, stills, animática), ruta del vídeo y duración frente al límite.
 - URL de la demo usada y si era la desplegada.
-- Voz (generada, parcial o estimada) y caracteres cobrados.
+- Voz: proveedor, si está completa, parcial o estimada, y con ElevenLabs los caracteres cobrados a la cuenta del usuario.
 - Música: pista, nivel y peor diferencia de `music.check`.
 - Qué revisaste y qué corregiste.
 - Qué necesita a una persona.
