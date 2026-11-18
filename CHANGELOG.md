@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **A crash while recording no longer loses the chapters already recorded.** `record.mjs` saved `marks.json` only at the end of the run. A browser that died mid-run (Playwright's Chromium crashes on an H.264 video, for example) or a killed process threw away the marks of every chapter, even the ones recorded fine, and they came out as stills. Now the marks are saved after every chapter, through a temporary file so they are never half-written. A browser that has already crashed no longer stops the final save.
+
 ## [0.2.0] - 2026-11-18
 
 The voice-over no longer needs an ElevenLabs account.
