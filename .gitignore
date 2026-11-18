@@ -1,0 +1,10 @@
+# Renders and recordings made while testing the skill in place
+out/
+takes/
+*.mp4
+*.webm
+*.mov
+
+# Local tooling
+node_modules/
+.DS_Store
