@@ -159,9 +159,10 @@ function voiceOf(scene) {
   if (fs.existsSync(jf)) {
     const j = JSON.parse(fs.readFileSync(jf, 'utf8'))
     if (j.text !== scene.voice) warn(`${scene.id}: voice text changed since the clip was generated; run voice.mjs again`)
-    const mp3 = path.join(OUT, 'vo', `${scene.id}.mp3`)
-    const audio = j.mode === 'elevenlabs' && fs.existsSync(mp3) ? mp3 : null
-    return { ...j, audio, duration: audio ? Math.max(j.duration, probe(mp3)) : j.duration }
+    // any provider (elevenlabs, kokoro, recorded) names its clip in `audio`; older ElevenLabs runs left <id>.mp3
+    const af = path.join(OUT, 'vo', j.audio || `${scene.id}.mp3`)
+    const audio = j.mode !== 'estimate' && fs.existsSync(af) ? af : null
+    return { ...j, audio, duration: audio ? Math.max(j.duration, probe(af)) : j.duration }
   }
   const words = scene.voice.trim().split(/\s+/).length
   return { mode: 'estimate', text: scene.voice, duration: +(words / (V.wpm || 145) * 60).toFixed(2), alignment: null }
@@ -653,7 +654,7 @@ function main() {
     const { s, vo } = p
     const ctx = { nav: p.nav, number: s.kind === 'chapter' ? navNames.indexOf(p.nav) + 1 || ++chapterNo : 0 }
     const row = { id: s.id, kind: s.kind, device: s.kind === 'chapter' ? devOf(s) : undefined, start: p.start, duration: p.duration, voice: vo ? vo.mode : 'none' }
-    if (vo && vo.mode !== 'elevenlabs') degraded = true
+    if (vo && !vo.audio) degraded = true
     if (s.kind === 'chapter') {
       const clipFile = path.join(HF, 'media', `${s.id}.mp4`)
       const fit = fitClip(s, p.duration, clipFile)
@@ -790,7 +791,7 @@ ${tl.join('\n')}
   const shortCh = chapters.filter((c, i) => (chapters[i + 1]?.start ?? total) - c.start < 10)
   if (shortCh.length) warn(`YouTube needs every chapter to last 10s or more: ${shortCh.map(c => c.name).join(', ')}`)
 
-  const result = { file: path.join(OUT, ONLY.length ? 'preview.mp4' : spec.output?.name || 'draft.mp4'), preview: ONLY.length ? ONLY : undefined, seconds: total, maxSeconds: MAX, limit, overLimit: over, voice: plan.some(p => p.vo && p.vo.mode === 'elevenlabs') ? (plan.every(p => !p.vo || p.vo.mode === 'elevenlabs') ? 'elevenlabs' : 'partial') : 'none', scenes: report, theme: THEME ? (T.name || 'unnamed') : null, motif: MOTIF, contrast: contrast.filter(c => c.ok === false), warnings }
+  const result = { file: path.join(OUT, ONLY.length ? 'preview.mp4' : spec.output?.name || 'draft.mp4'), preview: ONLY.length ? ONLY : undefined, seconds: total, maxSeconds: MAX, limit, overLimit: over, voice: (() => { const v = plan.filter(p => p.vo), modes = [...new Set(v.filter(p => p.vo.audio).map(p => p.vo.mode))]; return !modes.length ? 'none' : v.every(p => p.vo.audio) ? modes.join('+') : 'partial' })(), scenes: report, theme: THEME ? (T.name || 'unnamed') : null, motif: MOTIF, contrast: contrast.filter(c => c.ok === false), warnings }
   if (flag('no-render') || (over && !flag('allow-over'))) {
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify({ ...result, rendered: false }, null, 1))
     log(`composition -> ${path.relative(process.cwd(), HF)} (${total.toFixed(1)}s), not rendered`)
