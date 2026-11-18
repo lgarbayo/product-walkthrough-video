@@ -1,0 +1,28 @@
+# The skill has no build and no unit tests: CI checks that every script parses,
+# that the example spec is valid JSON, and that the licensing metadata is complete.
+name: check
+permissions: read-all
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Every script parses
+        run: for f in scripts/*.mjs; do node --check "$f"; done
+      - name: The example spec is valid JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('assets/video.example.json', 'utf8'))"
+
+  reuse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: REUSE compliance
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
