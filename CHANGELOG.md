@@ -8,6 +8,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Four voice options, always offered to the user.** Before, the voice-over needed an ElevenLabs account: without one, the skill could only make a silent draft. Now the skill always presents four options and lets the user choose:
+  - **ElevenLabs** (recommended): billed to the user's own account;
+  - **Kokoro**: a free voice that runs locally;
+  - **your own voice**: one recording per chapter, from a reading script the skill writes;
+  - **no voice**: a silent draft.
+
+  Kokoro and recorded clips are transcribed locally to get their word timings, so the cards still appear on the word that names them. Set the option with `voice.provider` in `video.json`, or `--provider` for one pass.
+
+### Changed
+
+- `compose.mjs` accepts audio from any voice provider, and `report.json` names the provider that voiced the video. A silent scene is reported as degraded whatever the provider.
+
 ## [0.1.0] - 2026-11-18
 
 The first public version, tested end to end by making a real three-minute explainer video.

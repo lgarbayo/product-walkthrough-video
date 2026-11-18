@@ -19,6 +19,7 @@ The skill was built and tested on 18 November 2026, by making a real three-minut
 | [009](#adr-009-reuse-launch-video-kits-music-scripts-unchanged) | Reuse launch-video-kit's music scripts unchanged | Accepted |
 | [010](#adr-010-neutral-layout-keyframes-instead-of-frames-of-the-reference-video) | Neutral layout keyframes instead of frames of the reference video | Accepted |
 | [011](#adr-011-two-line-headlines-push-the-content-down) | Two-line headlines push the content down | Accepted |
+| [012](#adr-012-four-voice-providers-and-the-user-always-chooses) | Four voice providers, and the user always chooses | Accepted |
 
 ---
 
@@ -174,3 +175,26 @@ The skill never picks a track on its own. The search only offers CC0 and CC BY, 
 
 **Consequences.**
 - A simple heuristic, not a measurement of the rendered text. A very wide or very narrow font can still need a shorter headline, which is the better fix anyway.
+
+## ADR-012: Four voice providers, and the user always chooses
+
+- **Status:** Accepted
+- **Date:** 2026-11-18
+
+**Context.** The voice-over only came from ElevenLabs. Without an account, the skill could only make a silent draft, which is a preview, not a video anyone would publish. ElevenLabs costs money, and some people would rather use their own voice. The cards are cued to the words using ElevenLabs' per-character timings, which other voices do not give.
+
+**Decision.** `voice.provider` selects one of four providers, and Claude always presents all four and lets the user pick, with ElevenLabs as the recommended one:
+
+- `elevenlabs`: as before, billed to the user's own account.
+- `kokoro`: Kokoro-82M, local and free, through `hyperframes tts`.
+- `recorded`: the user's own voice, one recording per chapter. The first run writes the text of each chapter to `vo-takes/READ.md`.
+- `none`: estimated timings and a silent draft.
+
+Kokoro and recorded clips get their timings by transcribing each clip locally (`hyperframes transcribe`, Whisper). The script's words are then aligned to the transcribed words with a longest common subsequence. Words the transcript spells differently ("thirty-seven" and "37") take times interpolated between their matched neighbours. HyperFrames already ships both tools, so no new dependency enters the scripts. Kokoro only needs a Python environment with `kokoro-onnx` and `soundfile`, which the user creates outside the project.
+
+**Consequences.**
+- **Kokoro on the test video:** the whole Mecena video was voiced with `bm_george` in 1 min 17 s for 11 clips, once the model was downloaded (the first run took about 2 min). The render came out at 2:42, against 2:40 with ElevenLabs, with no warning.
+- **Alignment:** it matched 80 % to 100 % of each chapter's words. The misses were numbers and one mishearing ("past" as "passed"), all interpolated correctly.
+- **Recorded voices:** silence is trimmed at both ends. A take padded with 2.4 s of silence came back at its spoken length.
+- **First use:** transcription downloads Whisper, a few minutes on the first run.
+- **The compositor:** `compose.mjs` takes audio from any provider. `report.json` says which one voiced the video.
