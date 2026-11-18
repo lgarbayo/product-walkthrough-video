@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" fill="none" stroke-linecap="square">
+  <!-- Example only, for the "Site tag" skin of video.example.json: draw your product's own motif. Strokes with pathLength="1" draw themselves; shapes with data-pop appear; data-at and data-dur time them (seconds into the scene).
+       An inspection route across a site plan: the walls are drawn, then the route, then a tag at each finding. -->
+  <path style="stroke:var(--ink)" d="M60,40 H840 V380 H60 Z M60,200 H420 M420,40 V300 M600,200 V380" pathLength="1" stroke-width="4" data-at="0.2" data-dur="1.4"/>
+  <path style="stroke:var(--ink)" d="M120,340 H360 V120 H520 V300 H760 V100" pathLength="1" stroke-width="3" data-at="1.0" data-dur="1.4"/>
+  <rect style="fill:var(--pill-ink);stroke:var(--ink)" x="346" y="226" width="28" height="28" stroke-width="3" data-pop data-at="1.6"/>
+  <rect style="fill:var(--accent-fail)" x="506" y="186" width="28" height="28" data-pop data-at="1.9"/>
+  <rect style="fill:var(--accent-pass)" x="746" y="186" width="28" height="28" data-pop data-at="2.2"/>
+</svg>
