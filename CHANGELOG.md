@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-18
+
+The voice-over no longer needs an ElevenLabs account.
+
 ### Added
 
 - **Four voice options, always offered to the user.** Before, the voice-over needed an ElevenLabs account: without one, the skill could only make a silent draft. Now the skill always presents four options and lets the user choose:
@@ -39,5 +43,6 @@ The first public version, tested end to end by making a real three-minute explai
 - **Neutral layout keyframes**, rendered for a fictional product with no skin, so the style board compares layout without suggesting any real product's look.
 - **Project documents:** README, MIT licence with REUSE metadata, licence notes for every component, contributing guide, security policy, architecture decisions, issue and pull request templates, and CI checks.
 
-[Unreleased]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/lgarbayo/product-walkthrough-video/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lgarbayo/product-walkthrough-video/releases/tag/v0.1.0
