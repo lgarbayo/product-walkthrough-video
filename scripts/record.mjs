@@ -16,7 +16,8 @@
 // The browser viewport is the app's: `device: "phone"` (default 390x844, touch) or `"browser"` (default 1280x800);
 // `viewport` overrides it. Playwright records at the viewport's CSS size, which compose.mjs places in the device frame.
 // Outputs in --out: stills/<id>.png, raw/<run>/*.webm and marks.json
-// ({shots: {<id>: {segments: [{video, start, end}], error?, stillOnly?}}}, merged across runs).
+// ({shots: {<id>: {segments: [{video, start, end}], error?, stillOnly?}}}, merged across runs). It is saved after every
+// chapter, so a crash mid-run (a browser that dies on a codec, a killed process) keeps the chapters already recorded.
 // `setup` (demo reset) runs on full runs; --shots skips it unless --setup is given.
 // --no-video (or a failure to start video recording) records stills only; manual scenes are skipped.
 // Exit codes: 0 ok, 1 some shots failed, 2 bad input, 3 no browser.
@@ -87,6 +88,8 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true })
   const marksFile = path.join(OUT, 'marks.json')
   const marks = fs.existsSync(marksFile) ? JSON.parse(fs.readFileSync(marksFile, 'utf8')) : { shots: {} }
+  // Written after every shot (temp file + rename, so a crash never leaves it half-written).
+  const saveMarks = () => { const tmp = `${marksFile}.tmp`; fs.writeFileSync(tmp, JSON.stringify(marks, null, 1)); fs.renameSync(tmp, marksFile) }
   const wanted = s => (!PICK.length || PICK.includes(s.id))
   const screens = SHOTS.filter(wanted)
   if (!screens.length) { console.error('[record] no chapter scene with steps to record'); process.exit(2) }
@@ -166,7 +169,8 @@ async function main() {
       // behind after 80 s in one measured run), and the cut then shows the previous chapter. A fresh context per chapter
       // keeps each take short; every chapter logs in and seeds its own state anyway. "takePerScene": false = one take.
       const fresh = spec.takePerScene !== false && s !== screens.find(x => !x.manual)
-      if (fresh || devOf(s) !== device) { await context.close(); await open(devOf(s)); active = main }
+      // closing the previous context also finishes writing its video file; a crashed browser must not stop the run
+      if (fresh || devOf(s) !== device) { await context.close().catch(() => {}); await open(devOf(s)); active = main }
       const segs = []
       let seg = { page: active, start: now(active) }
       const cutSeg = async () => { const end = now(seg.page); const video = await videoOf(seg.page); if (video) segs.push({ video, start: +seg.start.toFixed(3), end: +end.toFixed(3) }) }
@@ -230,11 +234,12 @@ async function main() {
         marks.shots[s.id] = prev && !prev.error && prev.segments && prev.segments.length ? { ...prev, lastError: msg } : { run, segments: [], error: msg }
         console.error(`[record] shot ${s.id} FAILED: ${msg}`)
       }
+      saveMarks()
     }
-    await context.close()
+    await context.close().catch(() => {})
   }
-  await browser.close()
-  fs.writeFileSync(marksFile, JSON.stringify(marks, null, 1))
+  await browser.close().catch(() => {})
+  saveMarks()
   log(`marks -> ${path.relative(process.cwd(), marksFile)}${failed ? `, ${failed} shot(s) failed` : ''}`)
   process.exit(failed ? 1 : 0)
 }
